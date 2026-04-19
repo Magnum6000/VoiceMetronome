@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>棒読みメトロノーム</title>
+    <title>Voice Metronome</title>
     <style>
         body {
             display: flex;
@@ -19,7 +19,6 @@
             width: 90%;
             max-width: 400px;
         }
-        /* 拍のインジケーターを一番上に配置 */
         .indicators {
             display: flex;
             justify-content: center;
@@ -37,16 +36,25 @@
         .dot.active {
             background-color: #1095c1;
         }
-        /* BPM表示 */
         .bpm-display {
             font-size: 80px;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             line-height: 1;
         }
         .bpm-unit {
             font-size: 20px;
             color: #666;
+        }
+        /* 音声切り替えスイッチのスタイル */
+        .mode-switch {
+            margin-bottom: 25px;
+        }
+        .mode-switch label {
+            margin: 0 10px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #555;
         }
         .controls {
             display: flex;
@@ -108,6 +116,11 @@
     <div class="bpm-display">
         <span id="bpmValue">100</span>
         <span class="bpm-unit">BPM</span>
+    </div>
+
+    <div class="mode-switch">
+        <label><input type="radio" name="soundMode" value="voice" checked> ボイス</label>
+        <label><input type="radio" name="soundMode" value="electronic"> 電子音</label>
     </div>
 
     <div class="controls">

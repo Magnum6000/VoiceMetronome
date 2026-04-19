@@ -12,52 +12,70 @@ const btnIcon = document.getElementById('btnIcon');
 const plusBtn = document.getElementById('plusBtn');
 const minusBtn = document.getElementById('minusBtn');
 
-// 1. 音声ファイルを読み込む
+// 1. ボイスファイルを読み込む
 async function loadSamples() {
     for (let i = 1; i <= 4; i++) {
-        const response = await fetch(`v${i}.mp3`);
+        // GitHub Pagesでも動くよう、パスに ./ を追加
+        const response = await fetch(`./v${i}.mp3`);
         const arrayBuffer = await response.arrayBuffer();
         audioBuffers[i] = await audioContext.decodeAudioData(arrayBuffer);
     }
 }
 
-// 2. 音を鳴らす & 見た目を光らせる
-function scheduleNote(beatNumber, time) {
-    const source = audioContext.createBufferSource();
-    source.buffer = audioBuffers[beatNumber];
-    source.connect(audioContext.destination);
+// 電子音（ピッ）を生成して鳴らす関数
+function playElectronicSound(time, beatNumber) {
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
 
-    // 150ms早めに予約再生
-    const offset = 0.15; 
-    source.start(time - offset);
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
 
-    // 見た目の更新を予約（音のタイミングに合わせる）
-    const delay = (time - audioContext.currentTime) * 1000;
-    setTimeout(() => {
-        updateDots(beatNumber);
-    }, delay);
+    // 1拍目だけ少し高い音にする（キッカケが分かりやすい）
+    osc.frequency.value = (beatNumber === 1) ? 1000 : 800;
+    
+    // 音の形（短いピッという音）
+    gain.gain.setValueAtTime(0.1, time);
+    gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.1);
+
+    osc.start(time);
+    osc.stop(time + 0.1);
 }
 
-// 丸の色を更新する関数
+// 2. 音を鳴らす
+function scheduleNote(beatNumber, time) {
+    const mode = document.querySelector('input[name="soundMode"]:checked').value;
+
+    if (mode === 'voice') {
+        // ボイスモード（150ms早めに予約）
+        const source = audioContext.createBufferSource();
+        source.buffer = audioBuffers[beatNumber];
+        source.connect(audioContext.destination);
+        source.start(time - 0.15);
+    } else {
+        // 電子音モード（ジャストのタイミング）
+        playElectronicSound(time, beatNumber);
+    }
+
+    // 見た目の更新
+    const delay = (time - audioContext.currentTime) * 1000;
+    setTimeout(() => { updateDots(beatNumber); }, delay);
+}
+
 function updateDots(beatNumber) {
-    // 一旦全部の色を消す
     for (let i = 1; i <= 4; i++) {
         document.getElementById(`dot${i}`).classList.remove('active');
     }
-    // 今の拍だけ色をつける
     if (isPlaying) {
         document.getElementById(`dot${beatNumber}`).classList.add('active');
     }
 }
 
-// 3. 次の拍の計算
 function nextNote() {
     const secondsPerBeat = 60.0 / bpmInput.value;
     nextNoteTime += secondsPerBeat;
     currentBeat = (currentBeat % 4) + 1;
 }
 
-// 4. ループ処理
 function scheduler() {
     while (nextNoteTime < audioContext.currentTime + 0.1) {
         scheduleNote(currentBeat, nextNoteTime);
@@ -66,10 +84,9 @@ function scheduler() {
     timerID = setTimeout(scheduler, 25.0);
 }
 
-// 5. イベント
 startBtn.addEventListener('click', async () => {
     if (!audioContext) {
-        audioContext = new AudioContext();
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
         await loadSamples();
     }
 
@@ -82,7 +99,6 @@ startBtn.addEventListener('click', async () => {
     } else {
         isPlaying = false;
         btnIcon.classList.remove('playing');
-        // 全部消す
         for (let i = 1; i <= 4; i++) {
             document.getElementById(`dot${i}`).classList.remove('active');
         }
